@@ -103,6 +103,10 @@ def create_properly_aligned_data(ticker, start_date, end_date):
             merged_data["daily_sentiment"].rolling(7, min_periods=1).mean()
         )
 
+        merged_data["price_ma_30"] = (
+            merged_data["Close"].rolling(30, min_periods=1).mean()
+        )
+
         # Filter by selected date range
         mask = (merged_data["Date"] >= pd.to_datetime(start_date)) & (
             merged_data["Date"] <= pd.to_datetime(end_date)
@@ -168,6 +172,15 @@ for i, ticker in enumerate(selected_tickers):
                 low=filtered_data["Low"],
                 close=filtered_data["Close"],
                 name="Price",
+            )
+        )
+        fig.add_trace(
+            go.Scatter(
+                x=filtered_data["Date"],
+                y=filtered_data["price_ma_30"],
+                mode="lines",
+                name="30-Day MA",
+                line=dict(color="green", dash="dot"),
             )
         )
         fig.update_layout(
