@@ -87,3 +87,4 @@ if __name__ == "__main__":
     for ticker in tickers:
         fetch_yahoo_news(ticker)
         fetch_stock_history(ticker)
+
