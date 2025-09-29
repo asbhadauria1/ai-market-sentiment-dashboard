@@ -177,7 +177,8 @@ for i, ticker in enumerate(selected_tickers):
             xaxis_title="Date",
             yaxis_title="Price ($)",
         )
-        st.plotly_chart(fig, width="stretch", key=f"price_{ticker}_{i}")
+        # FIXED: Replaced width="stretch" with use_container_width=True
+        st.plotly_chart(fig, use_container_width=True, key=f"price_{ticker}_{i}")
 
     # Sentiment analysis
     st.subheader("News Sentiment Analysis")
@@ -209,7 +210,10 @@ for i, ticker in enumerate(selected_tickers):
         xaxis_title="Date",
         yaxis_title="Sentiment Score",
     )
-    st.plotly_chart(fig_sentiment, width="stretch", key=f"sentiment_{ticker}_{i}")
+    # FIXED: Replaced width="stretch" with use_container_width=True
+    st.plotly_chart(
+        fig_sentiment, use_container_width=True, key=f"sentiment_{ticker}_{i}"
+    )
 
     # Add the professional warning about data limitations
     st.warning(
@@ -246,7 +250,8 @@ for i, ticker in enumerate(selected_tickers):
                 lambda x: f"{x:.3f}"
             )
 
-        st.dataframe(table_data.head(10), width="stretch")
+        # FIXED: Replaced width="stretch" with use_container_width=True
+        st.dataframe(table_data.head(10), use_container_width=True)
 
     # Word Cloud
     st.subheader("News Headlines Word Cloud")
