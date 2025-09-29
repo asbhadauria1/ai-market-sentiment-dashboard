@@ -1,6 +1,0 @@
-{
-  "default_tickers": ["AAPL", "TSLA", "MSFT"],
-  "default_start_date": "2025-09-22",
-  "default_end_date": "2026-05-30",
-  "default_model": "RandomForest"
-}
