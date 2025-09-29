@@ -56,14 +56,12 @@ def fetch_stock_history(ticker="AAPL", period="1y", interval="1d"):
 
     df.rename(columns=col_map, inplace=True)
 
-    # Keep only expected columns
-    df = df[
-        (
-            [c for c in expected_cols if c in df.columns] + ["Date"]
-            if "Date" in df.columns
-            else [c for c in expected_cols if c in df.columns]
-        )
-    ]
+    # Keep only expected columns - FIXED: Simplified column selection
+    available_cols = [c for c in expected_cols if c in df.columns]
+    if "Date" in df.columns:
+        available_cols = ["Date"] + available_cols
+
+    df = df[available_cols]
 
     if "Close" not in df.columns:
         print(f"Error: 'Close' column missing for {ticker}. Cannot proceed.")
