@@ -82,8 +82,8 @@ An end-to-end dashboard that combines financial news sentiment analysis with sto
 1️⃣ **Clone the Repository**
 
 ````bash
-git clone https://github.com/asbhadauria1/market-sentiment-dashboard.git
-cd market-sentiment-dashboard
+git clone https://github.com/asbhadauria1/ai-market-sentiment-dashboard.git
+cd ai-market-sentiment-dashboard
 
 ---
 
@@ -103,7 +103,7 @@ cd market-sentiment-dashboard
 
 1️⃣ **Clone the Repository**
 ```bash
-git clone https://github.com/asbhadauria1/market-sentiment-dashboard.git
+git clone https://github.com/asbhadauria1/ai-market-sentiment-dashboard.git
 cd market-sentiment-dashboard
 pip install -r requirements.txt
 streamlit run src/dashboard.py --server.headless true
