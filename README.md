@@ -26,15 +26,11 @@ An end-to-end dashboard that combines financial news sentiment analysis with sto
 
 - **Random Forest Classifier** → Predict stock movement (Up/Down)
 - **Feature Importance** visualization
-- **Explainable AI (SHAP)** → Show which features/headlines influenced predictions
 - **Model Confidence Scores** included
 
 ### 🔹 Extra Analytics
 
-- **Correlation** between sentiment & stock returns
-- **Volume Overlay** vs sentiment
 - **Moving Averages** (7-day, 30-day)
-- **Sector Comparison** → Analyze multiple stocks side by side
 
 ---
 
