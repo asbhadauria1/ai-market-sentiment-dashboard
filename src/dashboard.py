@@ -142,7 +142,6 @@ for i, ticker in enumerate(selected_tickers):
         )
 
         # Sentiment metrics
-        days_with_news = len(filtered_data[filtered_data["news_count"] > 0])
         avg_sentiment = filtered_data["daily_sentiment"].mean()
 
         col1, col2, col3, col4 = st.columns(4)
@@ -177,7 +176,6 @@ for i, ticker in enumerate(selected_tickers):
             xaxis_title="Date",
             yaxis_title="Price ($)",
         )
-        # FIXED: Replaced width="stretch" with use_container_width=True
         st.plotly_chart(fig, use_container_width=True, key=f"price_{ticker}_{i}")
 
     # Sentiment analysis
@@ -210,7 +208,6 @@ for i, ticker in enumerate(selected_tickers):
         xaxis_title="Date",
         yaxis_title="Sentiment Score",
     )
-    # FIXED: Replaced width="stretch" with use_container_width=True
     st.plotly_chart(
         fig_sentiment, use_container_width=True, key=f"sentiment_{ticker}_{i}"
     )
@@ -221,6 +218,121 @@ for i, ticker in enumerate(selected_tickers):
         "You're seeing real sentiment for **one trading day** with zeros representing periods without recent news coverage. "
         "For comprehensive historical analysis, premium news APIs with historical data would be required."
     )
+
+    # ==================== SIMPLE ML PREDICTION ====================
+    st.subheader("🤖 AI Stock Prediction")
+
+    try:
+        from sklearn.ensemble import RandomForestClassifier
+        from sklearn.model_selection import train_test_split
+        from sklearn.metrics import accuracy_score
+
+        # Use ONLY stock price data (ignore sentiment since we don't have enough)
+        ml_data = filtered_data.copy()
+        ml_data["Price_Up"] = (ml_data["Close"] > ml_data["Open"]).astype(
+            int
+        )  # 1 if price went up, 0 if down
+
+        # Create features using ONLY price/volume data (no sentiment)
+        features = ["Open", "High", "Low", "Close", "Volume"]
+        available_features = [f for f in features if f in ml_data.columns]
+
+        # Remove any rows with missing values
+        ml_data = ml_data.dropna(subset=available_features + ["Price_Up"])
+
+        st.write(f"📊 Using {len(ml_data)} trading days for ML predictions")
+
+        if len(ml_data) > 30:  # Need at least 30 trading days
+            X = ml_data[available_features]
+            y = ml_data["Price_Up"]
+
+            # Split data (80% train, 20% test)
+            split_idx = int(len(X) * 0.8)
+            X_train, X_test = X.iloc[:split_idx], X.iloc[split_idx:]
+            y_train, y_test = y.iloc[:split_idx], y.iloc[split_idx:]
+
+            # Train Random Forest
+            rf_model = RandomForestClassifier(n_estimators=100, random_state=42)
+            rf_model.fit(X_train, y_train)
+
+            # Make predictions
+            predictions = rf_model.predict(X_test)
+
+            # Evaluate
+            accuracy = accuracy_score(y_test, predictions)
+
+            # Display results
+            col1, col2 = st.columns(2)
+            with col1:
+                st.metric("📊 Prediction Accuracy", f"{accuracy:.2f}")
+            with col2:
+                latest_pred = "📈 UP" if predictions[-1] == 1 else "📉 DOWN"
+                st.metric("🎯 Next Prediction", latest_pred)
+
+            # ==================== FEATURE IMPORTANCE ====================
+            st.subheader("🔍 Feature Importance")
+
+            # Get feature importance
+            feature_importance = rf_model.feature_importances_
+
+            # Create a DataFrame for visualization
+            features_df = pd.DataFrame(
+                {"Feature": available_features, "Importance": feature_importance}
+            ).sort_values("Importance", ascending=True)
+
+            # Create horizontal bar chart
+            fig, ax = plt.subplots(figsize=(10, 4))
+            ax.barh(features_df["Feature"], features_df["Importance"], color="skyblue")
+            ax.set_xlabel("Importance Score")
+            ax.set_title("Random Forest - Feature Importance")
+            plt.tight_layout()
+
+            st.pyplot(fig)
+
+            # ==================== CONFIDENCE SCORES ====================
+            st.subheader("🎲 Prediction Confidence")
+
+            # Get confidence scores (probabilities) instead of just predictions
+            confidence_scores = rf_model.predict_proba(X_test)
+
+            # Show recent predictions with confidence
+            st.write("**Recent Predictions with Confidence:**")
+
+            recent_data = []
+            for i in range(min(5, len(predictions))):
+                down_prob = confidence_scores[i][0] * 100
+                up_prob = confidence_scores[i][1] * 100
+                actual = "Up" if y_test.iloc[i] == 1 else "Down"
+                predicted = "Up" if predictions[i] == 1 else "Down"
+
+                recent_data.append(
+                    {
+                        "Prediction": predicted,
+                        "Confidence": f"{up_prob if predicted == 'Up' else down_prob:.1f}%",
+                        "Actual": actual,
+                        "Correct": "✅" if predictions[i] == y_test.iloc[i] else "❌",
+                    }
+                )
+
+            # Display as table
+            recent_df = pd.DataFrame(recent_data)
+            st.dataframe(recent_df, use_container_width=True)
+
+            # Show current prediction confidence
+            latest_confidence = (
+                confidence_scores[-1][1] * 100
+                if predictions[-1] == 1
+                else confidence_scores[-1][0] * 100
+            )
+            st.metric("🎯 Current Prediction Confidence", f"{latest_confidence:.1f}%")
+
+        else:
+            st.warning(
+                f"⚠️ Need at least 30 trading days for reliable predictions. Currently have {len(ml_data)} days."
+            )
+
+    except Exception as e:
+        st.error(f"❌ ML prediction unavailable: {str(e)}")
 
     # Stock Data Table
     st.subheader("Stock Performance Data")
@@ -250,7 +362,6 @@ for i, ticker in enumerate(selected_tickers):
                 lambda x: f"{x:.3f}"
             )
 
-        # FIXED: Replaced width="stretch" with use_container_width=True
         st.dataframe(table_data.head(10), use_container_width=True)
 
     # Word Cloud
@@ -305,4 +416,3 @@ st.sidebar.markdown(
 - Word cloud analysis of news headlines
 """
 )
-

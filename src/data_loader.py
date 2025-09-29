@@ -29,62 +29,68 @@ def fetch_yahoo_news(ticker="AAPL"):
 
 
 def fetch_stock_history(ticker="AAPL", period="1y", interval="1d"):
-    df = yf.download(
-        ticker, period=period, interval=interval, group_by="ticker", auto_adjust=False
-    )
+    try:
+        # FIXED: Use proper yfinance syntax
+        stock_data = yf.Ticker(ticker)
+        df = stock_data.history(period=period, interval=interval)
 
-    if df.empty:
-        print(f"No stock data returned for {ticker}. Skipping.")
+        if df.empty:
+            print(f"No stock data returned for {ticker}. Skipping.")
+            return pd.DataFrame()
+
+        # Reset index to convert Date from index to column
+        df = df.reset_index()
+
+        # Ensure Date column exists
+        if "Date" not in df.columns:
+            print(
+                f"❌ Date column not found for {ticker}. Available columns: {list(df.columns)}"
+            )
+            return pd.DataFrame()
+
+        # Select and order columns
+        preferred_cols = ["Date", "Open", "High", "Low", "Close", "Volume"]
+        available_cols = [col for col in preferred_cols if col in df.columns]
+        df = df[available_cols]
+
+        # Convert numeric columns
+        for col in ["Open", "High", "Low", "Close", "Volume"]:
+            if col in df.columns:
+                df[col] = pd.to_numeric(df[col], errors="coerce")
+
+        # Remove rows with missing Close prices
+        initial_count = len(df)
+        df = df.dropna(subset=["Close"])
+        final_count = len(df)
+
+        if final_count < initial_count:
+            print(
+                f"⚠️ Removed {initial_count - final_count} rows with missing Close prices"
+            )
+
+        # Ensure Date is proper datetime
+        df["Date"] = pd.to_datetime(df["Date"], errors="coerce")
+        df = df.dropna(subset=["Date"])
+
+        # Sort by date
+        df = df.sort_values("Date").reset_index(drop=True)
+
+        csv_path = os.path.join(data_dir, f"{ticker}_history.csv")
+        df.to_csv(csv_path, index=False)
+        print(f"✅ Saved {len(df)} rows of historical prices to {csv_path}")
+        print(f"📅 Date range: {df['Date'].min().date()} to {df['Date'].max().date()}")
+
+        return df
+
+    except Exception as e:
+        print(f"❌ Error fetching stock data for {ticker}: {e}")
         return pd.DataFrame()
-
-    # Reset index
-    df.reset_index(inplace=True)
-
-    # Flatten columns if MultiIndex
-    if isinstance(df.columns, pd.MultiIndex):
-        df.columns = [col[1] if isinstance(col, tuple) else col for col in df.columns]
-
-    # Rename columns to standard names if necessary
-    col_map = {c: c for c in df.columns}
-    expected_cols = ["Open", "High", "Low", "Close", "Adj Close", "Volume"]
-    for c in expected_cols:
-        if c not in df.columns:
-            # Some tickers may have slightly different names, try lowercase match
-            match = [x for x in df.columns if x.lower() == c.lower()]
-            if match:
-                col_map[match[0]] = c
-
-    df.rename(columns=col_map, inplace=True)
-
-    # Keep only expected columns - FIXED: Simplified column selection
-    available_cols = [c for c in expected_cols if c in df.columns]
-    if "Date" in df.columns:
-        available_cols = ["Date"] + available_cols
-
-    df = df[available_cols]
-
-    if "Close" not in df.columns:
-        print(f"Error: 'Close' column missing for {ticker}. Cannot proceed.")
-        return pd.DataFrame()
-
-    # Convert numeric safely
-    numeric_cols = ["Open", "High", "Low", "Close", "Adj Close", "Volume"]
-    for col in numeric_cols:
-        if col in df.columns:
-            df[col] = pd.to_numeric(df[col], errors="coerce")
-
-    df.dropna(subset=["Close"], inplace=True)
-
-    csv_path = os.path.join(data_dir, f"{ticker}_history.csv")
-    df.to_csv(csv_path, index=False)
-    print(f"Saved {len(df)} rows of historical prices to {csv_path}")
-    return df
 
 
 if __name__ == "__main__":
     tickers = input("Enter stock tickers separated by comma (e.g., AAPL,TSLA,MSFT): ")
     tickers = [t.strip().upper() for t in tickers.split(",")]
     for ticker in tickers:
+        print(f"\nProcessing {ticker}...")
         fetch_yahoo_news(ticker)
         fetch_stock_history(ticker)
-

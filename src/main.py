@@ -58,16 +58,17 @@ def combine_sentiment_stock(news_file, stock_file, combined_file):
     stock_df = pd.read_csv(stock_file)
     print(f"📊 Stock data: {len(stock_df)} rows")
 
-    # FIX: Handle Date column properly
-    if "Date" not in stock_df.columns:
-        # If no Date column, use the first column that looks like dates
-        for col in stock_df.columns:
-            if any(keyword in col.lower() for keyword in ["date", "time"]):
-                stock_df.rename(columns={col: "Date"}, inplace=True)
-                break
+    # FIX: Handle the timezone format in Date column
+    print(f"🔍 Converting Date column from string to datetime...")
 
-    # Parse stock dates
+    # Remove timezone info and convert to datetime
+    stock_df["Date"] = stock_df["Date"].str.split(" ").str[0]  # Remove timezone part
     stock_df["Date"] = pd.to_datetime(stock_df["Date"], errors="coerce")
+
+    # Check conversion
+    print(f"🔍 Date conversion - Null values: {stock_df['Date'].isna().sum()}")
+    print(f"🔍 Date conversion - Sample after: {stock_df['Date'].head(3).tolist()}")
+
     stock_df = stock_df.dropna(subset=["Date"])
     stock_df["Date_only"] = stock_df["Date"].dt.date
 
@@ -75,7 +76,7 @@ def combine_sentiment_stock(news_file, stock_file, combined_file):
         f"📅 Stock date range: {stock_df['Date_only'].min()} to {stock_df['Date_only'].max()}"
     )
 
-    # Merge with sentiment data - CRITICAL FIX
+    # Merge with sentiment data
     print("🔄 Merging stock and sentiment data...")
     combined_df = pd.merge(
         stock_df,
